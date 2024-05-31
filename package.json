@@ -1,0 +1,21 @@
+{
+  "name": "marlin-proxy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "ts-node index.ts"
+  },
+  "dependencies": {
+    "@types/express": "^4.17.21",
+    "bignumber.js": "^9.1.2",
+    "cors": "^2.8.5",
+    "ethers": "^6.12.1",
+    "express": "^4.19.2",
+    "fs": "^0.0.1-security",
+    "kalypso-sdk": "^1.0.26"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17"
+  }
+}
