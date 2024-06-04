@@ -37,8 +37,7 @@ app.post("/proveTx", async (req, res) => {
   console.log;
   let abiCoder = new ethers.AbiCoder();
 
-  const marketId =
-    "0x07b7d625c70be57115ab18fc435ed0253425671cb91bd6547b7defbc75f52082";
+  const marketId = "3";
   const assignmentDeadline = new BigNumber(latestBlock).plus(10000000000);
   console.log({
     latestBlock,
@@ -52,16 +51,19 @@ app.post("/proveTx", async (req, res) => {
       ["uint256[5]"],
       [[body.root, body.nullifier, body.out_commit, body.delta, body.memo]],
     );
-    const askRequest = await kalypso.MarketPlace().createAsk(
-      marketId,
-      inputBytes,
-      reward,
-      assignmentDeadline.toFixed(0),
-      proofGenerationTimeInBlocks.toFixed(0),
-      await wallet.getAddress(),
-      0, // TODO: keep this 0 for now
-      Buffer.from(secretInputs),
-    );
+    const askRequest = await kalypso
+      .MarketPlace()
+      .createAskWithEncryptedSecretAndAcl(
+        marketId,
+        inputBytes,
+        reward,
+        assignmentDeadline.toFixed(0),
+        proofGenerationTimeInBlocks.toFixed(0),
+        await wallet.getAddress(),
+        0, // TODO: keep this 0 for now
+        body.encryptedData,
+        body.aclData,
+      );
     await askRequest.wait();
     console.log("Ask Request Hash: ", askRequest.hash);
     res.send(askRequest.hash);
