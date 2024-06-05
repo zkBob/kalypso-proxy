@@ -17,10 +17,6 @@ const wallet = new ethers.Wallet(sk, provider);
 const kalypsoConfig: KalspsoConfig = JSON.parse(
   readFileSync("kalypso-config.json", "utf-8"),
 );
-
-app.get("/", (req, res) => {
-  res.send("Hello from express");
-});
 app.get("/version", (req, res) => {
   res.send({ ref: "0.1.0", commitHash: "0abcd" });
 });
@@ -33,11 +29,9 @@ app.post("/proveTx", async (req, res) => {
 
   const body = req.body;
 
-  const secretInputs = body.secretInputs;
-  console.log;
   let abiCoder = new ethers.AbiCoder();
 
-  const marketId = "3";
+  const marketId = 3;
   const assignmentDeadline = new BigNumber(latestBlock).plus(10000000000);
   console.log({
     latestBlock,
@@ -67,9 +61,9 @@ app.post("/proveTx", async (req, res) => {
     await askRequest.wait();
     console.log("Ask Request Hash: ", askRequest.hash);
     res.send(askRequest.hash);
-  } catch (e) {
+  } catch (e: any) {
     console.log("exception :", e);
-    res.status(500).send(e);
+    res.status(500).send({ error: e.toString() });
   }
 });
 
