@@ -10,12 +10,16 @@
     "@types/express": "^4.17.21",
     "bignumber.js": "^9.1.2",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "ethers": "^6.12.1",
     "express": "^4.19.2",
     "fs": "^0.0.1-security",
-    "kalypso-sdk": "^1.0.26"
+    "kalypso-sdk": "^1.0.28",
+    "typescript": "^5.4.5"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17"
+    "@types/cors": "^2.8.17",
+    "axios": "^1.7.2",
+    "ts-node": "^10.9.2"
   }
 }

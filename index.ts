@@ -5,33 +5,46 @@ import { KalspsoConfig } from "kalypso-sdk/dist/types";
 import { readFileSync } from "fs";
 import BigNumber from "bignumber.js";
 import cors from "cors";
+import axios from "axios";
+import { config } from "dotenv";
+
+config();
+
 const app = express();
 const rpc = "https://arbitrum-sepolia.blockpi.network/v1/rpc/public";
+const marketId = 3;
 
 const provider = new ethers.JsonRpcProvider(rpc);
 app.use(cors());
 app.use(express.json());
-const sk: string = process.env.SK ?? "CHANGE_ME";
+
+const sk: string = process.env.SK || "CHANGE_ME";
 const wallet = new ethers.Wallet(sk, provider);
 
 const kalypsoConfig: KalspsoConfig = JSON.parse(
   readFileSync("kalypso-config.json", "utf-8"),
 );
+const kalypso = new KalypsoSdk(wallet as any, kalypsoConfig);
+
 app.get("/version", (req, res) => {
   res.send({ ref: "0.1.0", commitHash: "0abcd" });
 });
 app.post("/proveTx", async (req, res) => {
-  const reward = "1000000000000000000";
-
-  const kalypso = new KalypsoSdk(wallet, kalypsoConfig);
+  const reward = "1000000000000000123";
 
   const latestBlock = await provider.getBlockNumber();
 
   const body = req.body;
 
+  // const publicInputs = bufferFromObject(body.publicInputs);
   let abiCoder = new ethers.AbiCoder();
+  const publicInputs = abiCoder.encode(
+    ["uint256[5]"],
+    [[pub.root, pub.nullifier, pub.out_commit, pub.delta, pub.memo]],
+  );
+  const encryptedSecret = bufferFromObject(body.secretInputs.encryptedData);
+  const acl = bufferFromObject(body.secretInputs.aclData);
 
-  const marketId = 3;
   const assignmentDeadline = new BigNumber(latestBlock).plus(10000000000);
   console.log({
     latestBlock,
@@ -41,22 +54,18 @@ app.post("/proveTx", async (req, res) => {
 
   // Create ASK request
   try {
-    let inputBytes = abiCoder.encode(
-      ["uint256[5]"],
-      [[body.root, body.nullifier, body.out_commit, body.delta, body.memo]],
-    );
     const askRequest = await kalypso
       .MarketPlace()
       .createAskWithEncryptedSecretAndAcl(
         marketId,
-        inputBytes,
+        publicInputs,
         reward,
         assignmentDeadline.toFixed(0),
         proofGenerationTimeInBlocks.toFixed(0),
         await wallet.getAddress(),
         0, // TODO: keep this 0 for now
-        body.encryptedData,
-        body.aclData,
+        encryptedSecret,
+        acl,
       );
     await askRequest.wait();
     console.log("Ask Request Hash: ", askRequest.hash);
@@ -86,3 +95,42 @@ app.listen(8081, async () => {
     `current balance is  ${Number.parseFloat(balanceStringWithDecimalPoint)}`,
   );
 });
+
+import { pub, sec } from "./plaintext.json";
+const callProveTx = async () => {
+  try {
+    let abiCoder = new ethers.AbiCoder();
+    let secret = sec;
+
+    let inputBytes = abiCoder.encode(
+      ["uint256[5]"],
+      [[pub.root, pub.nullifier, pub.out_commit, pub.delta, pub.memo]],
+    );
+    const secretString = JSON.stringify(secret);
+    const encryptedRequestData = await kalypso
+      .MarketPlace()
+      .createEncryptedRequestData(
+        inputBytes,
+        Buffer.from(secretString),
+        marketId,
+      );
+
+    console.warn(
+      "Encrypted inputs can be verified /checkEncrypted soon (deployment in progress)",
+    );
+
+    const response = await axios.post(
+      "http://localhost:8081/proveTx",
+      encryptedRequestData,
+    );
+    console.log("ProveTx response: ", response.data);
+  } catch (error) {
+    console.error("Error calling /proveTx: ", error);
+  }
+};
+
+// setTimeout(callProveTx, 5000); // Call /proveTx after 5 seconds
+
+function bufferFromObject(obj: { type: string; data: number[] }): Buffer {
+  return Buffer.from(obj.data);
+}
