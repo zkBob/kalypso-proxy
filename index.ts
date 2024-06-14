@@ -69,7 +69,21 @@ app.post("/proveTx", async (req, res) => {
       );
     await askRequest.wait();
     console.log("Ask Request Hash: ", askRequest.hash);
-    res.send(askRequest.hash);
+
+    let receipt = await provider.getTransactionReceipt(askRequest.hash);
+
+    if (!receipt) {
+      throw new Error("failed to get tx receipt");
+    }
+    let blockNumber = receipt.blockNumber;
+
+    let askId = await kalypso.MarketPlace().getAskId(receipt);
+    console.log(`Ask ID : ${askId} minted in block ${blockNumber}`);
+
+    const proof: Proof = await getProofByAskId(askId, blockNumber);
+
+    // return JSON.stringify(proof);
+    res.send(JSON.stringify(proof));
   } catch (e: any) {
     console.log("exception :", e);
     res.status(500).send({ error: e.toString() });
@@ -95,6 +109,45 @@ app.listen(8081, async () => {
     `current balance is  ${Number.parseFloat(balanceStringWithDecimalPoint)}`,
   );
 });
+
+interface Proof {
+  a: string[];
+  b: string[][];
+  c: string[];
+}
+const getProofByAskId = async (
+  askId: string,
+  blockNumber: number,
+): Promise<Proof> => {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    console.log("\nTrying to fetch proof...\n");
+    let intervalId = setInterval(async () => {
+      let data = await kalypso
+        .MarketPlace()
+        .getProofByAskId(askId, blockNumber!);
+      if (data?.proof_generated) {
+        console.log(data.message);
+        console.log(`proof generation took ${(Date.now() - start) / 1000} s`);
+        let abiCoder = new ethers.AbiCoder();
+        let proof = abiCoder.decode(["uint256[8]"], data.proof);
+
+        let formated_proof = {
+          a: [proof[0][0].toString(), proof[0][1].toString()],
+          b: [
+            [proof[0][2].toString(), proof[0][3].toString()],
+            [proof[0][4].toString(), proof[0][5].toString()],
+          ],
+          c: [proof[0][6].toString(), proof[0][7].toString()],
+        };
+        resolve(formated_proof);
+        clearInterval(intervalId);
+      } else {
+        console.log(`Proof not submitted yet for askId : ${askId}.`);
+      }
+    }, 10000);
+  });
+};
 
 import { pub, sec } from "./plaintext.json";
 const callProveTx = async () => {
