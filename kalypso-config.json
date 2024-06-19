@@ -1,4 +1,8 @@
 {
+  "commitHash": "0xabc",
+  "ref": "ref",
+  "marketId": "3",
+  "rpc": "https://arbitrum-sepolia.blockpi.network/v1/rpc/public",
   "payment_token": "0x01d84D33CC8636F83d2bb771e184cE57d8356863",
   "staking_token": "0xdb69299dDE4A00c99b885D9f8748B2AeD1Fe4Ed4",
   "mock_attestation_verifier": "0x1dC40628443D93eA82945a9206e0b527BA3EA028",

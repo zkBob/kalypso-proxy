@@ -27,7 +27,7 @@ const kalypsoConfig: KalspsoConfig = JSON.parse(
 const kalypso = new KalypsoSdk(wallet as any, kalypsoConfig);
 
 app.get("/version", (req, res) => {
-  res.send({ ref: "0.1.0", commitHash: "0abcd" });
+  res.send({ ref: "0.1.0", commitHash: "0abcd", kalypsoConfig });
 });
 app.post("/proveTx", async (req, res) => {
   const reward = "1000000000000000123";
@@ -35,15 +35,6 @@ app.post("/proveTx", async (req, res) => {
   const latestBlock = await provider.getBlockNumber();
 
   const body = req.body;
-
-  // const publicInputs = bufferFromObject(body.publicInputs);
-  let abiCoder = new ethers.AbiCoder();
-  const publicInputs = abiCoder.encode(
-    ["uint256[5]"],
-    [[pub.root, pub.nullifier, pub.out_commit, pub.delta, pub.memo]],
-  );
-  const encryptedSecret = bufferFromObject(body.secretInputs.encryptedData);
-  const acl = bufferFromObject(body.secretInputs.aclData);
 
   const assignmentDeadline = new BigNumber(latestBlock).plus(10000000000);
   console.log({
@@ -54,11 +45,13 @@ app.post("/proveTx", async (req, res) => {
 
   // Create ASK request
   try {
+    const encryptedSecret = bufferFromObject(body.encryptedSecret);
+    const acl = bufferFromObject(body.acl);
     const askRequest = await kalypso
       .MarketPlace()
       .createAskWithEncryptedSecretAndAcl(
         marketId,
-        publicInputs,
+        bufferFromObject(body.publicInputs),
         reward,
         assignmentDeadline.toFixed(0),
         proofGenerationTimeInBlocks.toFixed(0),
@@ -88,6 +81,10 @@ app.post("/proveTx", async (req, res) => {
     console.log("exception :", e);
     res.status(500).send({ error: e.toString() });
   }
+});
+
+app.get("/config", async (_req, res) => {
+  res.send(kalypsoConfig);
 });
 
 app.listen(8081, async () => {
